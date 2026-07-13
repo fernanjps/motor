@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simulación de motor a pasos (stepper) con driver A4988 / DRV8825
+Motor a pasos (stepper) con driver A4988 / DRV8825 - Una sola dirección
 Raspberry Pi 3B+ (usando RPi.GPIO)
 
 Conexiones (numeración BCM):
@@ -18,7 +18,9 @@ STEP_PIN = 17
 EN_PIN = 22
 
 PASOS_POR_VUELTA = 200      # 1.8° por paso, sin microstepping
-RETARDO_SEG = 0.005         # 1000 microsegundos -> controla la velocidad
+RETARDO_SEG = 0.001         # 1000 microsegundos -> controla la velocidad
+
+DIRECCION = True            # True = horario, False = antihorario (fija)
 
 def setup():
     GPIO.setmode(GPIO.BCM)
@@ -26,11 +28,12 @@ def setup():
     GPIO.setup(STEP_PIN, GPIO.OUT)
     GPIO.setup(EN_PIN, GPIO.OUT)
 
-    GPIO.output(EN_PIN, GPIO.LOW)  # habilitar el driver
-    print("Iniciando prueba de motor stepper...")
+    GPIO.output(EN_PIN, GPIO.LOW)          # habilitar el driver
+    GPIO.output(DIR_PIN, GPIO.HIGH if DIRECCION else GPIO.LOW)  # dirección fija
 
-def mover_motor(pasos, direccion):
-    GPIO.output(DIR_PIN, GPIO.HIGH if direccion else GPIO.LOW)
+    print("Iniciando motor stepper (una sola dirección)...")
+
+def mover_motor(pasos):
     for _ in range(pasos):
         GPIO.output(STEP_PIN, GPIO.HIGH)
         time.sleep(RETARDO_SEG)
@@ -41,12 +44,8 @@ def main():
     setup()
     try:
         while True:
-            print("Girando sentido horario (1 vuelta)...")
-            mover_motor(PASOS_POR_VUELTA, True)
-            time.sleep(1)
-
-            print("Girando sentido antihorario (1 vuelta)...")
-            mover_motor(PASOS_POR_VUELTA, False)
+            print("Girando (1 vuelta)...")
+            mover_motor(PASOS_POR_VUELTA)
             time.sleep(1)
     except KeyboardInterrupt:
         print("Programa detenido por el usuario")

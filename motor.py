@@ -1,70 +1,58 @@
+#!/usr/bin/env python3
 """
-Prueba de motor a pasos (stepper) con driver A4988
-Raspberry Pi 3B+ - Python 3 + RPi.GPIO
+Simulación de motor a pasos (stepper) con driver A4988 / DRV8825
+Raspberry Pi 3B+ (usando RPi.GPIO)
 
-Conexiones sugeridas (BCM):
-    DIR  -> GPIO 20
-    STEP -> GPIO 21
-    EN   -> GPIO 16  (opcional, LOW = driver habilitado)
-
-Recuerda alimentar el A4988 (VMOT/GND) con una fuente externa
-adecuada al motor, NUNCA con el 5V del Raspberry Pi.
+Conexiones (numeración BCM):
+    DIR  -> GPIO27 (pin físico 13)
+    STEP -> GPIO17 (pin físico 11)
+    EN   -> GPIO22 (pin físico 15)   (opcional, LOW = driver habilitado)
 """
 
 import RPi.GPIO as GPIO
 import time
 
-# --- Configuración de pines ---
-DIR = 20
-STEP = 21
-EN = 16
+# Pines BCM
+DIR_PIN = 27
+STEP_PIN = 17
+EN_PIN = 22
 
-# --- Configuración del motor ---
-PASOS_POR_VUELTA = 200   # Motor típico de 1.8° por paso (sin microstepping)
-VELOCIDAD = 0.001        # segundos entre pulsos (menor = más rápido)
+PASOS_POR_VUELTA = 200      # 1.8° por paso, sin microstepping
+RETARDO_SEG = 0.001         # 1000 microsegundos -> controla la velocidad
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
-GPIO.setup(DIR, GPIO.OUT)
-GPIO.setup(STEP, GPIO.OUT)
-GPIO.setup(EN, GPIO.OUT)
+def setup():
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(DIR_PIN, GPIO.OUT)
+    GPIO.setup(STEP_PIN, GPIO.OUT)
+    GPIO.setup(EN_PIN, GPIO.OUT)
 
-# Habilitar el driver (en A4988, EN en LOW = habilitado)
-GPIO.output(EN, GPIO.LOW)
+    GPIO.output(EN_PIN, GPIO.LOW)  # habilitar el driver
+    print("Iniciando prueba de motor stepper...")
 
-
-def mover_motor(pasos, direccion, velocidad=VELOCIDAD):
-    """
-    Mueve el motor un número de pasos en una dirección.
-    direccion: 1 = horario, 0 = antihorario
-    """
-    GPIO.output(DIR, direccion)
+def mover_motor(pasos, direccion):
+    GPIO.output(DIR_PIN, GPIO.HIGH if direccion else GPIO.LOW)
     for _ in range(pasos):
-        GPIO.output(STEP, GPIO.HIGH)
-        time.sleep(velocidad)
-        GPIO.output(STEP, GPIO.LOW)
-        time.sleep(velocidad)
-
+        GPIO.output(STEP_PIN, GPIO.HIGH)
+        time.sleep(RETARDO_SEG)
+        GPIO.output(STEP_PIN, GPIO.LOW)
+        time.sleep(RETARDO_SEG)
 
 def main():
+    setup()
     try:
         while True:
             print("Girando sentido horario (1 vuelta)...")
-            mover_motor(PASOS_POR_VUELTA, 1)
+            mover_motor(PASOS_POR_VUELTA, True)
             time.sleep(1)
 
             print("Girando sentido antihorario (1 vuelta)...")
-            mover_motor(PASOS_POR_VUELTA, 0)
+            mover_motor(PASOS_POR_VUELTA, False)
             time.sleep(1)
-
     except KeyboardInterrupt:
-        print("\nPrueba detenida por el usuario.")
-
+        print("Programa detenido por el usuario")
     finally:
-        GPIO.output(EN, GPIO.HIGH)  # deshabilitar driver
+        GPIO.output(EN_PIN, GPIO.HIGH)  # deshabilitar driver
         GPIO.cleanup()
-        print("GPIO liberados. Programa finalizado.")
-
 
 if __name__ == "__main__":
     main()

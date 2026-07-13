@@ -1,58 +1,36 @@
-#!/usr/bin/env python3
-"""
-Simulación de motor a pasos (stepper) con driver A4988 / DRV8825
-Raspberry Pi 3B+ (usando RPi.GPIO)
+# -*- coding: utf-8 -*-
 
-Conexiones (numeración BCM):
-    DIR  -> GPIO27 (pin físico 13)
-    STEP -> GPIO17 (pin físico 11)
-    EN   -> GPIO22 (pin físico 15)   (opcional, LOW = driver habilitado)
-"""
-
+import time                     #Para las pausas
 import RPi.GPIO as GPIO
-import time
+GPIO.setmode(GPIO.BOARD)        #Usar la numeración de pines de la placa
 
-# Pines BCM
-DIR_PIN = 27
-STEP_PIN = 17
-EN_PIN = 22
+pinDir = 24                     #Pin DIR
+pinStep = 26                    #Pin Step
+numSteps = 200                  #Número de pasos del motor
+microPausa = 0.005              #Número de segundos de pausa
 
-PASOS_POR_VUELTA = 200      # 1.8° por paso, sin microstepping
-RETARDO_SEG = 0.001         # 1000 microsegundos -> controla la velocidad
 
-def setup():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(DIR_PIN, GPIO.OUT)
-    GPIO.setup(STEP_PIN, GPIO.OUT)
-    GPIO.setup(EN_PIN, GPIO.OUT)
+GPIO.setup(pinDir,GPIO.OUT)
+GPIO.setup(pinStep,GPIO.OUT)
 
-    GPIO.output(EN_PIN, GPIO.LOW)  # habilitar el driver
-    print("Iniciando prueba de motor stepper...")
+while True:
 
-def mover_motor(pasos, direccion):
-    GPIO.output(DIR_PIN, GPIO.HIGH if direccion else GPIO.LOW)
-    for _ in range(pasos):
-        GPIO.output(STEP_PIN, GPIO.HIGH)
-        time.sleep(RETARDO_SEG)
-        GPIO.output(STEP_PIN, GPIO.LOW)
-        time.sleep(RETARDO_SEG)
+        GPIO.output(pinDir,0)           #Establezco una dirección (0 o 1)
 
-def main():
-    setup()
-    try:
-        while True:
-            print("Girando sentido horario (1 vuelta)...")
-            mover_motor(PASOS_POR_VUELTA, True)
-            time.sleep(1)
+        for x in range(0,numSteps):
+                GPIO.output(pinStep, True)
+                time.sleep(microPausa)
+                GPIO.output(pinStep, False)
+                time.sleep(microPausa)
 
-            print("Girando sentido antihorario (1 vuelta)...")
-            mover_motor(PASOS_POR_VUELTA, False)
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Programa detenido por el usuario")
-    finally:
-        GPIO.output(EN_PIN, GPIO.HIGH)  # deshabilitar driver
-        GPIO.cleanup()
+        time.sleep(microPausa)
 
-if __name__ == "__main__":
-    main()
+        GPIO.output(pinDir, 1)          #Cambio de dirección
+
+        for x in range(0,numSteps):
+                GPIO.output(pinStep, True)
+                time.sleep(microPausa)
+                GPIO.output(pinStep, False)
+                time.sleep(microPausa)
+
+GPIO.cleanup()          #Para acabar correctamente

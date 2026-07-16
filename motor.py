@@ -60,12 +60,12 @@ try:
     detener_motor()
     print("Prueba de motor DC iniciada (movimiento por partes)...")
     while True:
-        mover_por_partes(girar_adelante, "ADELANTE")
+        mover_por_partes(girar_atras, "ATRAS")
         print("Pausa entre cambio de sentido...")
         detener_motor()
         time.sleep(tiempoPausa)
 
-        mover_por_partes(girar_atras, "ATRAS")
+        mover_por_partes(girar_adelante, "ADELANTE")
         print("Pausa entre cambio de sentido...")
         detener_motor()
         time.sleep(tiempoPausa)

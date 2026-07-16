@@ -1,49 +1,79 @@
 #!/usr/bin/env python3
-"""
-Motor a pasos (stepper) con driver A4988 / DRV8825
-Giro continuo en sentido horario
-Raspberry Pi 3B+ (usando RPi.GPIO)
-
-Conexiones (numeración BCM):
-    DIR  -> GPIO27 (pin físico 13)
-    STEP -> GPIO17 (pin físico 11)
-    EN   -> GPIO22 (pin físico 15)   (opcional, LOW = driver habilitado)
-"""
-
+# =======================================
+# Raspberry Pi 3B+ + L298N
+# Prueba de motor DC - movimiento por pasos/pulsos
+# Gira ADELANTE en pulsos, se detiene,
+# gira ATRAS en pulsos, y repite
+# =======================================
 import RPi.GPIO as GPIO
 import time
 
-# Pines BCM
-DIR_PIN = 27
-STEP_PIN = 17
-EN_PIN = 22
+# -------- Pines del L298N (numeración BCM) --------
+IN1 = 13
+IN2 = 19
+ENA = 26
 
-RETARDO_SEG = 0.005   # controla la velocidad (menor = más rápido)
+# -------- Configuración --------
+velocidad = 40        # 0-100 (baja esto para que vaya más lento; prueba 30-50)
+pwmFreq = 1000         # Frecuencia del PWM en Hz
 
-def setup():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(DIR_PIN, GPIO.OUT)
-    GPIO.setup(STEP_PIN, GPIO.OUT)
-    GPIO.setup(EN_PIN, GPIO.OUT)
+# -------- Tiempos para movimiento "por partes" --------
+duracionPulso = 0.5    # segundos que gira en cada pulso
+pausaEntrePulsos = 0.3 # segundos de pausa entre pulsos
+numPulsos = 15         # cuántos pulsos hace en cada sentido
+tiempoPausa = 1         # pausa entre cambio de sentido
 
-    GPIO.output(EN_PIN, GPIO.LOW)     # habilitar el driver
-    GPIO.output(DIR_PIN, GPIO.HIGH)   # sentido horario (fijo)
+# -------- Setup GPIO --------
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(IN1, GPIO.OUT)
+GPIO.setup(IN2, GPIO.OUT)
+GPIO.setup(ENA, GPIO.OUT)
 
-    print("Girando en sentido horario de forma continua... (Ctrl+C para detener)")
+pwm = GPIO.PWM(ENA, pwmFreq)
+pwm.start(0)
 
-def main():
-    setup()
-    try:
-        while True:
-            GPIO.output(STEP_PIN, GPIO.HIGH)
-            time.sleep(RETARDO_SEG)
-            GPIO.output(STEP_PIN, GPIO.LOW)
-            time.sleep(RETARDO_SEG)
-    except KeyboardInterrupt:
-        print("\nMotor detenido por el usuario")
-    finally:
-        GPIO.output(EN_PIN, GPIO.HIGH)  # deshabilitar driver
-        GPIO.cleanup()
+def detener_motor():
+    GPIO.output(IN1, GPIO.LOW)
+    GPIO.output(IN2, GPIO.LOW)
+    pwm.ChangeDutyCycle(0)
 
-if __name__ == "__main__":
-    main()
+def girar_adelante():
+    GPIO.output(IN1, GPIO.HIGH)
+    GPIO.output(IN2, GPIO.LOW)
+    pwm.ChangeDutyCycle(velocidad)
+
+def girar_atras():
+    GPIO.output(IN1, GPIO.LOW)
+    GPIO.output(IN2, GPIO.HIGH)
+    pwm.ChangeDutyCycle(velocidad)
+
+def mover_por_partes(funcion_direccion, nombre):
+    for i in range(numPulsos):
+        print(f"{nombre} - pulso {i+1}/{numPulsos}")
+        funcion_direccion()
+        time.sleep(duracionPulso)
+        detener_motor()
+        time.sleep(pausaEntrePulsos)
+
+try:
+    detener_motor()
+    print("Prueba de motor DC iniciada (movimiento por partes)...")
+    while True:
+        mover_por_partes(girar_adelante, "ADELANTE")
+        print("Pausa entre cambio de sentido...")
+        detener_motor()
+        time.sleep(tiempoPausa)
+
+        mover_por_partes(girar_atras, "ATRAS")
+        print("Pausa entre cambio de sentido...")
+        detener_motor()
+        time.sleep(tiempoPausa)
+
+except KeyboardInterrupt:
+    print("\nPrograma interrumpido por el usuario.")
+finally:
+    detener_motor()
+    pwm.stop()
+    GPIO.cleanup()
+    print("GPIO liberado correctamente.")

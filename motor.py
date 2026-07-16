@@ -2,7 +2,8 @@
 # =======================================
 # Raspberry Pi 3B+ + L298N
 # Prueba de motor DC - movimiento por pasos/pulsos
-# Cada pulso tiene su propia duración independiente
+# Gira ADELANTE en pulsos, se detiene,
+# gira ATRAS en pulsos, y repite
 # =======================================
 import RPi.GPIO as GPIO
 import time
@@ -16,12 +17,10 @@ ENA = 26
 velocidad = 40        # 0-100 (baja esto para que vaya más lento; prueba 30-50)
 pwmFreq = 1000         # Frecuencia del PWM en Hz
 
-# -------- Duración de cada pulso (en segundos) --------
-# Cada elemento de la lista es un pulso independiente.
-# Ejemplo: parte 1 = 4s, parte 2 = 5s, parte 3 = 2s, parte 4 = 3s
-duracionesPulsos = [4, 5, 2, 3]
-
-pausaEntrePulsos = 0.3  # segundos de pausa entre pulsos
+# -------- Tiempos para movimiento "por partes" --------
+duracionPulso = 0.5    # segundos que gira en cada pulso
+pausaEntrePulsos = 0.3 # segundos de pausa entre pulsos
+numPulsos = 15         # cuántos pulsos hace en cada sentido
 tiempoPausa = 1         # pausa entre cambio de sentido
 
 # -------- Setup GPIO --------
@@ -50,11 +49,10 @@ def girar_atras():
     pwm.ChangeDutyCycle(velocidad)
 
 def mover_por_partes(funcion_direccion, nombre):
-    total_partes = len(duracionesPulsos)
-    for i, duracion in enumerate(duracionesPulsos):
-        print(f"{nombre} - parte {i+1}/{total_partes} ({duracion}s)")
+    for i in range(numPulsos):
+        print(f"{nombre} - pulso {i+1}/{numPulsos}")
         funcion_direccion()
-        time.sleep(duracion)
+        time.sleep(duracionPulso)
         detener_motor()
         time.sleep(pausaEntrePulsos)
 

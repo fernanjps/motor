@@ -2,8 +2,7 @@
 # =======================================
 # Raspberry Pi 3B+ + L298N
 # Prueba de motor DC - movimiento por pasos/pulsos
-# Gira ADELANTE en pulsos, se detiene,
-# gira ATRAS en pulsos, y repite
+# Cada parte tiene su propia duración Y su propia pausa
 # =======================================
 import RPi.GPIO as GPIO
 import time
@@ -17,11 +16,20 @@ ENA = 26
 velocidad = 40        # 0-100 (baja esto para que vaya más lento; prueba 30-50)
 pwmFreq = 1000         # Frecuencia del PWM en Hz
 
-# -------- Tiempos para movimiento "por partes" --------
-duracionPulso = 0.5    # segundos que gira en cada pulso
-pausaEntrePulsos = 0.3 # segundos de pausa entre pulsos
-numPulsos = 15         # cuántos pulsos hace en cada sentido
-tiempoPausa = 1         # pausa entre cambio de sentido
+# -------- Cada parte es (duracion_movimiento, pausa_despues) --------
+# Parte 1: gira 4s, luego pausa 0.3s
+# Parte 2: gira 5s, luego pausa 0.3s
+# Parte 3: gira 4s, luego pausa 0.5s
+# Parte 4: gira 3s, luego pausa 0.3s
+# Agrega/quita/edita las que quieras, cada una es independiente
+pasos = [
+    (4, 0.3),
+    (5, 0.3),
+    (4, 0.5),
+    (3, 0.3),
+]
+
+tiempoPausa = 1  # pausa entre cambio de sentido (ADELANTE <-> ATRAS)
 
 # -------- Setup GPIO --------
 GPIO.setmode(GPIO.BCM)
@@ -49,12 +57,13 @@ def girar_atras():
     pwm.ChangeDutyCycle(velocidad)
 
 def mover_por_partes(funcion_direccion, nombre):
-    for i in range(numPulsos):
-        print(f"{nombre} - pulso {i+1}/{numPulsos}")
+    total_partes = len(pasos)
+    for i, (duracion, pausa) in enumerate(pasos):
+        print(f"{nombre} - parte {i+1}/{total_partes}: gira {duracion}s, pausa {pausa}s")
         funcion_direccion()
-        time.sleep(duracionPulso)
+        time.sleep(duracion)
         detener_motor()
-        time.sleep(pausaEntrePulsos)
+        time.sleep(pausa)
 
 try:
     detener_motor()
